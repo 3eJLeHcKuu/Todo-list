@@ -89,4 +89,12 @@ h1 {
 .delete-icon {
   cursor: pointer;
 }
- 
+
+.export-button{
+  margin-top: 10px;
+  background: #8758ff;
+  color: #fff;
+  border: none;
+  padding: 0.55rem;
+  cursor: pointer;
+}
