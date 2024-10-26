@@ -2,7 +2,7 @@
   "name": "todo-list",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://3ejlehckuuq.github.io/Todolist",
+  "homepage": "https://3ejlehckuu.github.io/Todo-list/",
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.4.2",
     "@fortawesome/free-brands-svg-icons": "^6.4.2",
@@ -26,8 +26,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build -r git remote add origin https://github.com/3eJLeHcKuu/Todo-list"
-
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [

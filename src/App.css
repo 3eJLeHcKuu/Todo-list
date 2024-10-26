@@ -98,3 +98,16 @@ h1 {
   padding: 0.55rem;
   cursor: pointer;
 }
+
+@media (max-width: 480px) {
+  .TodoWrapper {
+    padding: 8px;
+  }
+  h1{
+    padding: 10px;
+  }
+
+  .export-button{
+    margin-bottom: 10px;
+  }
+}

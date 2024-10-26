@@ -6,14 +6,44 @@ import { EditTodoForm } from './EditTodoForm';
 import { saveAs } from 'file-saver';
 uuidv4();
 
+const stringToWin1251 = (str) => {
+    const byteArray = [];
+
+    for (let i = 0; i < str.length; i++) {
+        const charCode = str.charCodeAt(i);
+
+        if (charCode < 128) {
+            // ASCII characters (0-127) are the same in both UTF-8 and Windows-1251
+            byteArray.push(charCode);
+        } else if (charCode >= 1040 && charCode <= 1103) {
+            // Cyrillic characters (1040-1103) need conversion to Windows-1251
+            byteArray.push(charCode - 848); // 1040-1103 to 192-255
+        } else {
+            // Handle unsupported characters with '?'
+            byteArray.push(0x3F); // '?'
+        }
+    }
+
+    return new Uint8Array(byteArray);
+};
+
 const exportTodosToFile = (todos) => {
     if (todos.length === 0) {
         alert('Make a choice');
         return;
     }
-    const json = JSON.stringify(todos, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    saveAs(blob, 'New list.json');
+
+    // Formatting the text for the todo list
+    const txt = todos.map(todo => `${todo.task} - ${todo.completed ? 'Purchased' : 'Not purchased'}`).join('\n');
+
+    // Convert the string to a byte array in Windows-1251 encoding
+    const byteArrayWin1251 = stringToWin1251(txt);
+
+    // Create a Blob with the byte array
+    const blob = new Blob([byteArrayWin1251], { type: 'text/plain; charset=windows-1251' });
+
+    // Use saveAs to trigger the download
+    saveAs(blob, 'Purchase_list.txt');
 };
 
 export const TodoWrapper = () => {
@@ -63,7 +93,7 @@ export const TodoWrapper = () => {
                     />
                 )
             )}
-            <button className='export-button' onClick={() => exportTodosToFile(todos)}>Download List</button> {/* Передача todos в функцию */}
+            <button className='export-button' onClick={() => exportTodosToFile(todos)}>Download List</button>
         </div>
     );
 };
