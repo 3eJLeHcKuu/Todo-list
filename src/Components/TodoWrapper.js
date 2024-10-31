@@ -3,46 +3,24 @@ import { TodoForm } from './TodoForm';
 import { v4 as uuidv4 } from 'uuid';
 import { Todo } from './Todo';
 import { EditTodoForm } from './EditTodoForm';
+import { Notification } from './Notification';
 import { saveAs } from 'file-saver';
-uuidv4();
 
 const stringToWin1251 = (str) => {
-    const byteArray = [];
-
-    for (let i = 0; i < str.length; i++) {
-        const charCode = str.charCodeAt(i);
-
-        if (charCode < 128) {
-            // ASCII characters (0-127) are the same in both UTF-8 and Windows-1251
-            byteArray.push(charCode);
-        } else if (charCode >= 1040 && charCode <= 1103) {
-            // Cyrillic characters (1040-1103) need conversion to Windows-1251
-            byteArray.push(charCode - 848); // 1040-1103 to 192-255
-        } else {
-            // Handle unsupported characters with '?'
-            byteArray.push(0x3F); // '?'
-        }
-    }
-
-    return new Uint8Array(byteArray);
+    return new Uint8Array([...str].map((char) => {
+        const charCode = char.charCodeAt(0);
+        if (charCode < 128) return charCode;
+        if (charCode >= 1040 && charCode <= 1103) return charCode - 848;
+        return 0x3F; // Replacement character
+    }));
 };
 
-const exportTodosToFile = (todos) => {
-    if (todos.length === 0) {
-        alert('Make a choice');
-        return;
-    }
+const exportTodosToFile = (todos, showNotification, isEditing) => {
+    if (todos.length === 0) return showNotification('Not ready to download!', 'error');
+    if (isEditing) return showNotification('Cannot download while editing tasks!', 'error');
 
-    // Formatting the text for the todo list
     const txt = todos.map(todo => `${todo.task} - ${todo.completed ? 'Purchased' : 'Not purchased'}`).join('\n');
-
-    // Convert the string to a byte array in Windows-1251 encoding
-    const byteArrayWin1251 = stringToWin1251(txt);
-
-    // Create a Blob with the byte array
-    const blob = new Blob([byteArrayWin1251], { type: 'text/plain; charset=windows-1251' });
-
-    // Use saveAs to trigger the download
+    const blob = new Blob([stringToWin1251(txt)], { type: 'text/plain; charset=windows-1251' });
     saveAs(blob, 'Purchase_list.txt');
 };
 
@@ -51,49 +29,57 @@ export const TodoWrapper = () => {
         const savedTodos = localStorage.getItem('todos');
         return savedTodos ? JSON.parse(savedTodos) : [];
     });
+    const [notification, setNotification] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('todos', JSON.stringify(todos));
     }, [todos]);
 
-    const addTodo = (todo) => {
-        setTodos([...todos, { id: uuidv4(), task: todo, completed: false, isEditing: false }]);
+    const showNotification = (message, type = "error") => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 3000);
+    };
+
+    const addTodo = (task) => {
+        setTodos((prevTodos) => [...prevTodos, { id: uuidv4(), task, completed: false, isEditing: false }]);
     };
 
     const toggleComplete = (id) => {
-        setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)));
+        setTodos((prevTodos) => prevTodos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)));
     };
 
     const deleteTodo = (id) => {
-        setTodos(todos.filter((todo) => todo.id !== id));
+        setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
     };
 
     const editTodo = (id) => {
-        setTodos(todos.map((todo) => (todo.id === id ? { ...todo, isEditing: !todo.isEditing } : todo)));
+        setIsEditing(true);
+        setTodos((prevTodos) => prevTodos.map((todo) => (todo.id === id ? { ...todo, isEditing: !todo.isEditing } : todo)));
     };
 
     const editTask = (task, id) => {
-        setTodos(todos.map((todo) => (todo.id === id ? { ...todo, task, isEditing: !todo.isEditing } : todo)));
+        setTodos((prevTodos) => prevTodos.map((todo) => (todo.id === id ? { ...todo, task, isEditing: false } : todo)));
+        setIsEditing(false);
     };
 
     return (
         <div className='TodoWrapper'>
             <h1>Time to shop</h1>
-            <TodoForm addTodo={addTodo} />
-            {todos.map((todo) =>
+            <TodoForm addTodo={addTodo} todos={todos} showNotification={showNotification} />
+            {todos.map((todo) => (
                 todo.isEditing ? (
-                    <EditTodoForm editTodo={editTask} task={todo} key={todo.id} />
+                    <EditTodoForm key={todo.id} editTodo={editTask} task={todo} todos={todos} showNotification={showNotification} />
                 ) : (
-                    <Todo
-                        task={todo}
-                        key={todo.id}
-                        toggleComplete={toggleComplete}
-                        deleteTodo={deleteTodo}
-                        editTodo={editTodo}
-                    />
+                    <Todo key={todo.id} task={todo} toggleComplete={toggleComplete} deleteTodo={deleteTodo} editTodo={editTodo} />
                 )
+            ))}
+            <button className='export-button' onClick={() => exportTodosToFile(todos, showNotification, isEditing)}>
+                Download List
+            </button>
+            {notification && (
+                <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />
             )}
-            <button className='export-button' onClick={() => exportTodosToFile(todos)}>Download List</button>
         </div>
     );
 };
